@@ -1,98 +1,198 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo, useState } from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function App() {
+  const [gridSize, setGridSize] = useState<string>('10');
+  const [selected, setSelected] = useState<number | null>(43);
 
-export default function HomeScreen() {
+  const size = parseInt(gridSize) || 0;
+
+  const neighbors = useMemo(() => {
+    if (selected === null || size <= 0) return [];
+    const row = Math.floor(selected / size);
+    const col = selected % size;
+    const result: number[] = [];
+
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        if (i === 0 && j === 0) continue;
+        const newRow = row + i;
+        const newCol = col + j;
+        if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+          result.push(newRow * size + newCol);
+        }
+      }
+    }
+    return result.sort((a, b) => a - b);
+  }, [selected, size]);
+
+  const palette = {
+    background: '#FFF8F0',
+    headerBackground: '#FFE4CB',
+    headerText: '#8E5F3D',
+    borders: '#E6C9A8',
+    gridBackground: '#FFFFFF',
+    textPrimary: '#6F4E37',
+    inputBackground: '#FFF1E0',
+    buttonBackground: '#E87D42',
+    buttonText: '#FFF8F0',
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      <StatusBar style="dark" />
+      <View style={[styles.header, { backgroundColor: palette.headerBackground, borderBottomColor: palette.borders }]}>
+        <Text style={[styles.headerTitle, { color: palette.headerText }]}>Ibarreta, Jonie Jane S.</Text>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Grid Container */}
+        <View style={[styles.gridWrapper, { backgroundColor: palette.gridBackground, borderColor: palette.borders }]}>
+          <View style={[styles.grid, { width: size * 32 }]}>
+            {Array.from({ length: size * size }).map((_, index) => {
+              const label = index.toString().padStart(2, '0');
+              const isSelected = selected === index;
+              const isNeighbor = neighbors.includes(index);
+              
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.cell, 
+                    { borderColor: palette.borders },
+                    isSelected && { backgroundColor: palette.buttonBackground },
+                    isNeighbor && { backgroundColor: palette.inputBackground },
+                  ]}
+                  onPress={() => setSelected(index)}
+                >
+                  <Text style={[
+                    styles.cellText, 
+                    { color: palette.textPrimary },
+                    isSelected && { color: palette.buttonText, fontWeight: 'bold' }
+                  ]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Selection Info */}
+        <View style={styles.infoSection}>
+          <Text style={[styles.infoText, { color: palette.textPrimary }]}>selected = {selected ?? 'None'}</Text>
+          <Text style={[styles.infoText, { color: palette.textPrimary }]}>
+            {neighbors.join(', ')}
+          </Text>
+        </View>
+
+        {/* Input Controls */}
+        <View style={styles.controls}>
+          <Text style={[styles.label, { color: palette.textPrimary }]}>Enter the number of Rows and Columns:</Text>
+          <TextInput
+            style={[styles.input, { 
+              backgroundColor: palette.inputBackground, 
+              borderColor: palette.borders, 
+              color: palette.textPrimary 
+            }]}
+            keyboardType="numeric"
+            value={gridSize}
+            onChangeText={setGridSize}
+          />
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: palette.buttonBackground }]}
+            onPress={() => setSelected(null)}
+          >
+            <Text style={[styles.buttonText, { color: palette.buttonText }]}>REGENERATE</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  header: {
+    height: 60,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  content: {
+    padding: 20,
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  gridWrapper: {
+    padding: 10,
+    borderWidth: 1,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#8E5F3D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  cell: {
+    width: 30,
+    height: 30,
+    borderWidth: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellText: {
+    fontSize: 14,
+  },
+  infoSection: {
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+  },
+  infoText: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  controls: {
+    width: '100%',
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 4,
+    textAlign: 'center',
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  button: {
+    height: 50,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
